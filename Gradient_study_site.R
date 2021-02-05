@@ -201,9 +201,12 @@ ggsn::scalebar(data = europe,
 # Get started with tmaps  -------------------------------------------------
 
 # https://cran.r-project.org/web/packages/tmap/vignettes/tmap-getstarted.html#multiple-shapes-and-layers
+# http://fisherankney.com/spatial-analysis-greece
+
 # Plot raster data in tmap?
 
 # Shape in tmap is spatial object (class: sf, sp. stars, or raster)
+# first define the shape (= layer to plot), then define its characteristics
 
 library(stars)
 
@@ -215,15 +218,24 @@ g = st_graticule(europe,
 
 windows()
 
+# St up the plot mode: not interactive
+tmap_mode("plot")  
+
 #eu_map <- 
   tm_shape(europe) +
     tm_polygons() +
-  #tm_shape(forest) +
- # tm_raster(alpha = 0.9) +
+  tm_shape(forest) +
+    tm_raster(alpha = 1, 
+              #palette = "Greens",
+             # col = c(1 = "green"),
+              title = "Forest cover") +
   tm_shape(site) +
-    tm_dots() +
-  tm_compass(type = "2star", position = c("left", "top")) +
-  tm_scale_bar(breaks = c(0, 100, 200), text.size = 1)
+    tm_symbols(col = "bioclim", 
+               size = 0.1, 
+               palette = "") +
+  tm_compass(#type = "2star", 
+  position = c("left", "top"))# +
+ # tm_scale_bar(breaks = c(0, 100, 200), text.size = 1)
 
 
 plot(eu_map, graticule = g, axes = TRUE, col = "blue")
