@@ -6,14 +6,11 @@
 # Map of the study area
 # follow example: https://geocompr.robinlovelace.net/adv-map.html
 
-# oal: make a mpa of the study site for the NO, GE, Fi 
+# goal: make a mpa of the study site for the NO, GE, Fi 
 # beetle sample data
 # Simple study site map
 
-# uses 'tmap' library which is ment for thematic maps
-# and vectors
-
-
+# uses 'tmap' library which is ment for thematic maps, vectors and rasters
 
 
 
@@ -33,6 +30,7 @@ library(ggplot2) # tidyverse data visualization package
 
 # Data of New Zaeland are included
 
+# tmap can work with objects: sf + dataframe, and with stars objects
 
 # Plot New Zaeland data ---------------------------------------------------
 
@@ -54,8 +52,9 @@ class(map_nz)   # tmap object
 
 # Add new layers 
 
-map_nz1 = map_nz +
+map_nz1 =  map_nz +
   tm_shape(nz_elev) + tm_raster(alpha = 0.7)
+
 
 nz_water = st_union(nz) %>% st_buffer(22200) %>% 
   st_cast(to = "LINESTRING")
