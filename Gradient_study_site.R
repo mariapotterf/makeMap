@@ -18,9 +18,9 @@ library(spData)
 library(ggplot2)
 library(patchwork)     # For multiple map layout
 library(ggsn)          # add scale, north arrow, works with ggplot2
-#library(ggmap)         # add scale, north arrow...
-library(ggspatial)     # add static map elements: scale, north arror
-library(stars)
+#library(ggmap)        # add scale, north arrow...
+library(ggspatial)     # add static map elements: scale, north arrow; works with ggplot2
+library(stars)         # convert raster to start to plot with ggplot
 
 
 # Get input data
@@ -30,26 +30,33 @@ setwd("C:/MyTemp/2019_bioESS_coord/outMaps/2021_gradient/input")
 # shapefiles as st object
 europe <- st_read(paste(getwd(), "Europe_ERTS.shp", sep = "/"))  # polygon
 site   <- st_read(paste(getwd(), "pts_bioregions.shp", sep = "/")) # point
-forest <- raster(paste(getwd(), "eea_r_3035_100_m_forest-area-2015_p_2015_v1_r1.tif", sep = "/"))
 
-#cropped raster
-forest <- raster(paste(getwd(), "forest_simple2_int_rcl.tif", sep = "/"))
+# Read forest as raster and as stars object. 
+# Raster works with `tmap`
+# Stars wprks with  `ggplot2`
+forest_br <- raster(   paste(getwd(), "eea_r_3035_100_m_forest-area-2015_p_2015_v1_r1.tif", sep = "/"))
+#forest_s = read_stars(paste(getwd(), "eea_r_3035_100_m_forest-area-2015_p_2015_v1_r1.tif", sep = "/"), 
+ #                   NA_value = 65535)
+
+#cropped raster - in ArcGIS
+forest_r <- raster(paste(getwd(), "forest_simple2_int_rcl.tif", sep = "/"))
+
+forest_s = read_stars(paste(getwd(), "forest_simple2_int_rcl.tif", sep = "/"), 
+                   NA_value = 65535)
 
 
+# CHeck coordinate system of raster and polygons ---------------------------
 
-
-# CHeck coordinate system of raste and polygons ---------------------------
-
-crs(site) <- crs(forest)
-crs(europe)
+#crs(site) <- crs(forest)
+#crs(europe)
 
 
 # Chcek attributes = columns
-names(site)
+#names(site)
 
 
 # Check raster attributes - it is too big, need to change it to plot in ggplot2
-hist(values(forest))
+#hist(values(forest))
 
 
 # Process data ------------------------------------------------------------
@@ -58,18 +65,18 @@ hist(values(forest))
 countries = europe %>% filter(NAME == "Finland"| NAME == "Norway"|NAME == "Germany")
 
 # Convert sf object to start object
-eu_star <- st_as_stars(europe)
+# eu_star <- st_as_stars(europe)
 
 
 # project raster data
-st_crs(europe)
+# st_crs(europe)
 
 # Convert raster to polygon
 #r.to.poly <- sf::as_Spatial(sf::st_as_sf(stars::st_as_stars(forest), 
      #                                    as_points = FALSE, merge = TRUE))
 
 
-# Reclassify bioblimatic regions for NO, FI, GE
+# Reclassify bioclimatic regions for NO, FI, GE
 # -	the German ones ‘temperate forest’, 
 #	- the Finnish ones ‘boreal forest’ 
 #	- the Norwegian ones ‘boreal&boreonemoral forest’
@@ -82,7 +89,10 @@ site <- site %>%
 # covert raster to dataframe to allow 
 # plotting with ggplots2!!!
 # ---------------------------
-#forest_df <- as.data.frame(forest, xy = TRUE) 
+forest_df <- as.data.frame(forest_r, xy = TRUE) 
+
+# First increase memory size:
+#memory.limit(12000)
 
 
 
@@ -91,7 +101,7 @@ site <- site %>%
 #plot(europe["NAME"], fill = "grey")
 
 
-# Plot in ggplot2
+# Plot in ggplot2 --------------------------------------------------------------
 # shart with ggplot maps here: https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html
 # basic plotting
 ggplot(data = europe) + 
@@ -101,10 +111,23 @@ ggplot(data = europe) +
 
 
 # plots raster 
-# raster needs to be saved as df which I can do
-#ggplot() +
- # geom_raster(data = forest) + 
-  #coord_quickmap()
+windows()
+ggplot() +
+  geom_stars(data = forest_s, downsample = 10) #+
+  scale_fill_manual(low= "white", high = "green")# +
+  #coord_fixed() +
+  
+  
+
+    
+    
+    
+
+# Use R data for plotting -------------------------------------------------
+
+# Use natural earth data : https://cran.r-project.org/web/packages/rnaturalearth/vignettes/rnaturalearth.html  
+    
+    
 
 # Reclassify raster values: now has 0,1,65535 which is NO data, only 1 = forest
 #m <- c(0, 0.25, 1,  0.25, 0.5, 2,  0.5, 1, 3)
@@ -185,7 +208,7 @@ p1 +# blank() +
               #location = 'topright',
               scale = 0.2, #  # scale: 0-1, proportion of teh size
               symbol = 3)  # get symbols by northSymbols()
-ggsn::scalebar(data = europe, 
+   ggsn::scalebar(data = europe, 
                dist = 100, 
                dist_unit = "km",
                transform = FALSE)
@@ -193,7 +216,7 @@ ggsn::scalebar(data = europe,
 
 
 # Plot vector over raster -------------------------------------------------
-
+  
 
 
 
@@ -208,39 +231,82 @@ ggsn::scalebar(data = europe,
 # Shape in tmap is spatial object (class: sf, sp. stars, or raster)
 # first define the shape (= layer to plot), then define its characteristics
 
-library(stars)
+#library(stars)
 
 library(tmap)
 
-g = st_graticule(europe, 
-                 lon = c(-10, 20), 
-                 lat = c( 50,  78))
+
 
 windows()
+
+# set zoom in: define the bounding box
+st_bbox(europe)
+
+# Create my own zoom in
+
+# need to create bounding box
+# values were guessed from teh graticules values
+library(tmaptools)
+library(shinyjs)
+
+
+# vector:                     # xmin,   ymin,    xmax,     ymax
+zoom_box = tmaptools::bb(c( -800000,5000000, 1500000, 7800000))
+
+
+# Expolre palette options
+# needs 'shinyjs' library
+tmaptools::palette_explorer()
 
 # St up the plot mode: not interactive
 tmap_mode("plot")  
 
+tmap_mode("view")  
+
+
 #eu_map <- 
-  tm_shape(europe) +
+  tm_shape(europe,
+           bbox = zoom_box) + # zoom in europe shp
+    
+    tm_graticules(col = "grey85",
+                  #lty = "dashed",
+                 lwd = 0.5) +
     tm_polygons() +
-  tm_shape(forest) +
-    tm_raster(alpha = 1, 
-              #palette = "Greens",
-             # col = c(1 = "green"),
+  # Add raster
+  tm_shape(forest_r) +
+    tm_raster(col = "forest_simple2_int_rcl.tif",  # # name of the raster r after calluing raster(r) function
+              palette = "darkgreen",
               title = "Forest cover") +
+  # Add just countries borders on top  
+  tm_shape(europe) +
+    tm_borders("black", lwd = .5) +
   tm_shape(site) +
-    tm_symbols(col = "bioclim", 
+    tm_symbols(col = "bioclim",
+               border.col = NA,
+               shape = 16,  # solid circle, no outline
                size = 0.1, 
-               palette = "") +
-  tm_compass(#type = "2star", 
-  position = c("left", "top"))# +
- # tm_scale_bar(breaks = c(0, 100, 200), text.size = 1)
+               palette = "YlOrRd", #,
+               title.col = "Bioclimatic regions") +
+    # Add north ign: no needed if there is graticule
+  # tm_compass(#type = "2star",
+  #            position = c("left", "top"),
+  #            bg.color = "white") + 
+  tm_scale_bar(bg.color="white") +
+  # Modify the legend
+    tm_legend(bg.color="white",
+              position = c("left", "top"),
+              outside = TRUE) +
+    tm_layout(attr.outside=FALSE)
 
 
-plot(eu_map, graticule = g, axes = TRUE, col = "blue")
 
 
+# Get compassd
+data(NLD_muni)
+qtm(NLD_muni, theme = "NLD") + tm_scale_bar(position=c("left", "bottom"),
+                                            bg.color="red",
+                                            text.size = 2,
+                                            breaks = c(0, 100, 200, 300, 400, 500))
 
 
 
