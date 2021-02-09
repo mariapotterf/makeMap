@@ -93,22 +93,7 @@ ggm1 +
            transform = TRUE, model = "WGS84")
 
 
-# add north arrow and scale
-p1 + ggspatial::annotation_scale(
-  location = "tr",
-  bar_cols = c("grey60", "white"),
-  text_family = "ArcherPro Book"
-) +
-  ggspatial::annotation_north_arrow(
-    location = "tr", 
-    which_north = "true",
-    pad_x = unit(0.4, "in"), pad_y = unit(0.4, "in"),
-    style = ggspatial::north_arrow_nautical(
-      fill = c("grey40", "white"),
-      line_col = "grey20",
-      text_family = "ArcherPro Book"
-    )
-  )
+
 
 
 
