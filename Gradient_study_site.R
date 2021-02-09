@@ -14,8 +14,8 @@ rm(list = ls())
 
 # Libraries ---------------------------------------------------------------
 
-library(sf)           # Manage vector data
-library(raster)       # Manage raster data
+library(sf)            # Manage vector data
+library(raster)        # Manage raster data
 library(dplyr)
 library(ggplot2)
 library(ggsn)          # add scale, north arrow, works with ggplot2
